@@ -14,14 +14,34 @@
 //==================================================================================
 
 #include "matrice.h"
+#include "encodeur.h"
 
 void setup() {
+  Serial.begin(9600);
   // Initialisation du pilote NeoPixels
   initialiserLaMatrice();
+  // Initialisation du pilote de l'encodeur
+  initialiserEncodeur();
 
   }
 
 void loop() {
+  // Gestion de l'encodeur (lecture des signaux et traitement)
+  gestionEncodeur();
+
+  // Affichage de la valeur si elle a changer
+  static int oldEncodeurValue = 0;
+  int actualEncoderValue = lireValeurEncodeur();
+  
+  if(actualEncoderValue != oldEncodeurValue) {
+    Serial.println(actualEncoderValue);
+  }
+  oldEncodeurValue = actualEncoderValue;
+
+
+
+/*
+  CE CODE EST DESACTIVER POUR CETTE ETAPE. NE PAS LE RE-ACTIVER AFIN QUE VOTRE LIBRARIE ENCODEUR FONCTIONNE CORRECTEMENT
 
   // Afficher une ligne verticale
   effacerTableauPixels();
@@ -48,5 +68,8 @@ void loop() {
     miseAJourDeMatrice();
     delay(1000);
   }
+*/
+
+
 }
 
