@@ -16,13 +16,15 @@
 #include "matrice.h"
 #include "encodeur.h"
 
+// Declaration d'un objet pour l'encodeur
+Encodeur encodeur1;
+
 void setup() {
   Serial.begin(9600);
   // Initialisation du pilote NeoPixels
   initialiserLaMatrice();
   // Initialisation du pilote de l'encodeur
-  initialiserEncodeur();
-
+  encodeur1.init();
   }
 
 void loop() {
@@ -30,7 +32,7 @@ void loop() {
 
   // Affichage de la valeur si elle a changer
   static int oldEncodeurValue = 0;
-  int actualEncoderValue = lireValeurEncodeur();
+  int actualEncoderValue = encodeur1.lireValeur();
   
   if(actualEncoderValue != oldEncodeurValue) {
     Serial.println(actualEncoderValue);
