@@ -26,8 +26,7 @@ void setup() {
   }
 
 void loop() {
-  // Gestion de l'encodeur (lecture des signaux et traitement)
-  gestionEncodeur();
+  delay(500);
 
   // Affichage de la valeur si elle a changer
   static int oldEncodeurValue = 0;
