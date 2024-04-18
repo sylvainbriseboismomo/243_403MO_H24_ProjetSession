@@ -11,6 +11,9 @@
 // 243-403-H24 MO
 //
 // Base du projet de session
+// Version 1.0 : Debut du projet
+// Version 1.1 : Ajout des libraries : encodeur et matrice en C
+// Version 1.2 : Conversion des libraries en classe
 //==================================================================================
 
 #include "matrice.h"
@@ -18,17 +21,21 @@
 
 // Declaration d'un objet pour l'encodeur
 Encodeur encodeur1;
+Matrice matrice1;
 
 void setup() {
   Serial.begin(9600);
   // Initialisation du pilote NeoPixels
-  initialiserLaMatrice();
+  matrice1.init();
   // Initialisation du pilote de l'encodeur
   encodeur1.init();
+
+  // Affiche un X au demarrage
+  matrice1.dessinerX();
+  matrice1.miseAJour();
   }
 
 void loop() {
-  delay(500);
 
   // Affichage de la valeur si elle a changer
   static int oldEncodeurValue = 0;
@@ -36,6 +43,9 @@ void loop() {
   
   if(actualEncoderValue != oldEncodeurValue) {
     Serial.println(actualEncoderValue);
+    matrice1.effacer();
+    matrice1.dessinerNombre(actualEncoderValue);
+    matrice1.miseAJour();
   }
   oldEncodeurValue = actualEncoderValue;
 

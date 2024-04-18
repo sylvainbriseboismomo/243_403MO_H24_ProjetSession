@@ -1,19 +1,15 @@
 #include "matrice.h"
 #include <Adafruit_NeoPixel.h>
 
-// Declaration d'un objet pour communiquer avec la matrice de DEL
-Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-// Declaration d'un tableau 2D pour controller les DEL en mode X-Y
-unsigned char tableauPixels[NB_COL][NB_LIGNE];
-
-void initialiserLaMatrice()
+void Matrice::init()
 {
+  pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
   pixels.begin();
 }
 
 // Fonction qui efface le contenu du tableau de pixels en X-Y
-void effacerTableauPixels() {
+void Matrice::effacer() {
   // Boucle sur les colones (X)
   for(int x = 0 ; x < NB_COL ; x++) {
     // Boucle sur les lignes (Y)
@@ -27,7 +23,7 @@ void effacerTableauPixels() {
 // Cette fonction effectuer le transfert de donnes
 // entre le tableau de pixels en 2D et le pilote de DEL NeoPixels
 // et affiche la nouvelle valeur des DELS
-void miseAJourDeMatrice() {
+void Matrice::miseAJour() {
   // Remise a zero des DELS sur le pilote NeoPixels
   pixels.clear();
 
@@ -56,7 +52,7 @@ void miseAJourDeMatrice() {
 }
 
 // Fonction qui dessine une ligne verticale dans le tableau de pixels X-Y
-void dessinerLigneVerticale() {
+void Matrice::dessinerLigneVerticale() {
 // Tracer une lignes verticale a la colone 0
   for(int y = 0 ; y < NB_LIGNE ; y++) {
     tableauPixels[0][y] = 10;
@@ -64,7 +60,7 @@ void dessinerLigneVerticale() {
 }
 
 // fonction qui dessine un carre dans le tableau de pixels X-Y
-void dessinerCarre() {
+void Matrice::dessinerCarre() {
   // Tracer les lignes horizontales du carre
   for(int x = 0 ; x < NB_COL ; x++) {
     tableauPixels[x][0] = 10;
@@ -79,7 +75,7 @@ void dessinerCarre() {
 }
 
 // fonction qui dessine un X dans le tableau de pixels X-Y
-void dessinerX() {
+void Matrice::dessinerX() {
   // Tracer la premiere diagonale
   for(int x = 0 ; x < NB_COL ; x++) {
     tableauPixels[x][x] = 10;
@@ -92,7 +88,7 @@ void dessinerX() {
 }
 
 // fonction qui dessine les nombres de 0 a 9 dans le tableau de pixels X-Y
-void dessinerNombre(unsigned char nombre) {
+void Matrice::dessinerNombre(unsigned char nombre) {
   unsigned char intensite = 10;
 
   switch(nombre) {
