@@ -2,21 +2,50 @@
 #include <Adafruit_NeoPixel.h>
 
 
+uint16_t Matrice::largeur() {
+  return PANNEL_W;
+}
+
+uint16_t Matrice::hauteur() {
+  return PANNEL_H;
+}
+
 void Matrice::init()
 {
   pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
   pixels.begin();
+  pixels.clear();
+  pixels.show();
+
+  uint16_t idPixel, idPixelInverse;
+
+  // Create an address map for a pannel
+  for(uint16_t y=0 ; y < PANNEL_LED_H ; y++) {
+    for(uint16_t x=0 ; x<PANNEL_LED_W; x++) {
+      if(x & 0x01) {
+        idPixel = (x * PANNEL_LED_H) + y;
+        idPixelInverse = (((PANNEL_LED_W-1) - x) * PANNEL_LED_H) + y;
+      }
+      else {
+        idPixel = (x * PANNEL_LED_H) + ((PANNEL_LED_H-1)-y);
+        idPixelInverse = (((PANNEL_LED_W - 1) - x) * PANNEL_LED_H) + ((PANNEL_LED_H-1)-y);  
+      }
+
+      pixelMap[x+(0*PANNEL_LED_W)][y + (0*PANNEL_LED_H)] = idPixel + (0 * PANNEL_LED_W * PANNEL_LED_H);
+      pixelMap[x+(1*PANNEL_LED_W)][y + (0*PANNEL_LED_H)] = idPixel + (1 * PANNEL_LED_W * PANNEL_LED_H);
+/*
+      pixelMap[x+(1*PANNEL_LED_W)][y  + (1*PANNEL_LED_H)] = idPixel + (2 * PANNEL_LED_W * PANNEL_LED_H);
+      pixelMap[x+(0*PANNEL_LED_W)][y + (1*PANNEL_LED_H)] = idPixelInverse + (3 * PANNEL_LED_W * PANNEL_LED_H);
+      pixelMap[x+(1*PANNEL_LED_W)][y + (1*PANNEL_LED_H)] = idPixelInverse + (4 * PANNEL_LED_W * PANNEL_LED_H);
+      pixelMap[x+(0*PANNEL_LED_W)][y + (1*PANNEL_LED_H)] = midPixelInverse + (5 * PANNEL_LED_W * PANNEL_LED_H);
+*/          
+    }
+  }
 }
 
 // Fonction qui efface le contenu du tableau de pixels en X-Y
 void Matrice::effacer() {
-  // Boucle sur les colones (X)
-  for(int x = 0 ; x < NB_COL ; x++) {
-    // Boucle sur les lignes (Y)
-    for(int y = 0 ; y < NB_LIGNE ; y++) {
-      tableauPixels[x][y] = 0;
-    }
-  }
+  pixels.clear();
 }
 
 // Fonction qui effectuer la mise a jour des pixels
@@ -24,123 +53,146 @@ void Matrice::effacer() {
 // entre le tableau de pixels en 2D et le pilote de DEL NeoPixels
 // et affiche la nouvelle valeur des DELS
 void Matrice::miseAJour() {
-  // Remise a zero des DELS sur le pilote NeoPixels
-  pixels.clear();
-
-  // Boucle sur les colones (X)
-  for(int x = 0 ; x < NB_COL ; x++) {
-    // boucles sur les lignes (Y)
-    for(int y = 0 ; y < NB_LIGNE ; y++) {
-      // Transfert des pixels du tableau 2D vers le pilote NeoPixel (comme un tableau 1D)
-      // Il faut faire un calcul pour convertir les coordonnes X et Y en une seule valeur
-      // correspondante au pixels dans la matrice: x + ( Y * NB_COL)
-
-      // Detection des lignes impairs
-      if(y & 0x01) {
-        // Pour les lignes impairs, il faut faire un mirroir des pixels (gauche-droite)
-        pixels.setPixelColor((NB_COL-1) - x + (y * NB_COL), pixels.Color(0, tableauPixels[x][y], 0));
-      }
-      else {
-        // Transfert direct du tableau 2D en 1D
-        pixels.setPixelColor(x + (y * NB_COL), pixels.Color(0, tableauPixels[x][y], 0));
-      }        
-    }
+  //  Limite le courant total
+  while(calculEstimeCourant() > 0.5) // While it too high
+  {
+    diminuerCourant();
   }
-
   // Declenche l'envoie des nouvelles valeurs sur les DEL
   pixels.show();
 }
 
-// Fonction qui dessine une ligne verticale dans le tableau de pixels X-Y
-void Matrice::dessinerLigneVerticale() {
-// Tracer une lignes verticale a la colone 0
-  for(int y = 0 ; y < NB_LIGNE ; y++) {
-    tableauPixels[0][y] = 10;
-  }
+void Matrice::lirePixel(uint16_t pxlCnt, uint8_t *r, uint8_t *g, uint8_t *b) {
+  uint32_t pixelColor = pixels.getPixelColor(pxlCnt);
+  *r = 0x000000FF & (pixelColor >> (3*8));
+  *g = 0x000000FF & (pixelColor >> (2*8));
+  *b = 0x000000FF & (pixelColor >> (1*8));
 }
 
-// fonction qui dessine un carre dans le tableau de pixels X-Y
-void Matrice::dessinerCarre() {
-  // Tracer les lignes horizontales du carre
-  for(int x = 0 ; x < NB_COL ; x++) {
-    tableauPixels[x][0] = 10;
-    tableauPixels[x][NB_LIGNE-1] = 10;
-  }
-
-// Tracer les lignes verticales du carre
-  for(int y = 0 ; y < NB_LIGNE ; y++) {
-    tableauPixels[0][y] = 10;
-    tableauPixels[NB_COL-1][y] = 10;
-  }
+void Matrice::lirePixelXY(uint16_t x, uint16_t y, uint8_t *r, uint8_t *g, uint8_t *b) {
+  lirePixel(pixelMap[x][y], r, g,b);
 }
 
-// fonction qui dessine un X dans le tableau de pixels X-Y
-void Matrice::dessinerX() {
-  // Tracer la premiere diagonale
-  for(int x = 0 ; x < NB_COL ; x++) {
-    tableauPixels[x][x] = 10;
-  }
-
-  // Tracer la seconde diagonale
-  for(int x = 0 ; x < NB_COL ; x++) {
-    tableauPixels[x][(NB_COL-1) - x] = 10;
-  }
+void Matrice::ecrirePixel(uint16_t pxlCnt, uint8_t r, uint8_t g, uint8_t b) {
+  pixels.setPixelColor(pxlCnt,pixels.Color(r,g,b));
 }
 
-// fonction qui dessine les nombres de 0 a 9 dans le tableau de pixels X-Y
-void Matrice::dessinerNombre(unsigned char nombre) {
-  unsigned char intensite = 10;
+void Matrice::ecrirePixelXY(uint16_t x, uint16_t y, uint8_t r, uint8_t g, uint8_t b) {
+  ecrirePixel(pixelMap[x][y], r, g,b);
+}
 
-  switch(nombre) {
-    case 0:
-      tableauPixels[1][0] = intensite;
-      tableauPixels[2][0] = intensite;
-      tableauPixels[3][0] = intensite;
-      tableauPixels[4][0] = intensite;
-      tableauPixels[1][6] = intensite;
-      tableauPixels[2][6] = intensite;
-      tableauPixels[3][6] = intensite;
-      tableauPixels[4][6] = intensite;
-      tableauPixels[0][1] = intensite;
-      tableauPixels[0][2] = intensite;
-      tableauPixels[0][3] = intensite;
-      tableauPixels[0][4] = intensite;
-      tableauPixels[0][5] = intensite;
-      tableauPixels[5][1] = intensite;
-      tableauPixels[5][2] = intensite;
-      tableauPixels[5][3] = intensite;
-      tableauPixels[5][4] = intensite;
-      tableauPixels[5][5] = intensite;
-    break;
-    case 1:
-      tableauPixels[2][0] = intensite;
-      tableauPixels[2][1] = intensite;
-      tableauPixels[2][2] = intensite;
-      tableauPixels[2][3] = intensite;
-      tableauPixels[2][4] = intensite;
-      tableauPixels[2][5] = intensite;
-      tableauPixels[2][6] = intensite;
-    break;
-    case 2:
-      tableauPixels[1][0] = intensite;
-      tableauPixels[2][0] = intensite;
-      tableauPixels[3][0] = intensite;
-      tableauPixels[4][0] = intensite;
-      tableauPixels[1][3] = intensite;
-      tableauPixels[2][3] = intensite;
-      tableauPixels[3][3] = intensite;
-      tableauPixels[4][3] = intensite;
-      tableauPixels[1][6] = intensite;
-      tableauPixels[2][6] = intensite;
-      tableauPixels[3][6] = intensite;
-      tableauPixels[4][6] = intensite;
-      tableauPixels[0][1] = intensite;
-      tableauPixels[0][2] = intensite;
-      tableauPixels[5][4] = intensite;
-      tableauPixels[5][5] = intensite;
-    break;
-    default:
-      dessinerX();
-    break;
+float Matrice::calculEstimeCourant() {
+  float current = 0;
+  uint8_t r,g,b;
+
+  for(uint16_t pxlCnt = 0 ; pxlCnt < NUMPIXELS ; pxlCnt++ )
+  {
+      lirePixel(pxlCnt, &r, &g, &b);
+      current += (float)(r) * 0.0125 / 255.0;
+      current += (float)(g) * 0.0125 / 255.0;
+      current += (float)(b) * 0.0125 / 255.0;
+  }
+
+  return current;
+}
+
+void Matrice::diminuerCourant() {
+  uint8_t r,g,b;
+  
+  // Drop each color of 1
+  for(uint16_t pxlCnt = 0 ; pxlCnt < NUMPIXELS ; pxlCnt++ )
+    {
+      lirePixel(pxlCnt, &r, &g, &b);
+      if(r) {
+        r--;
+      }
+      if(g) {
+        g--;
+      }
+      if(b) {
+        b--;
+      }  
+
+      ecrirePixel(pxlCnt, r, g, b);
+    }
+}
+
+void Matrice::ligneH(uint8_t startX, uint8_t startY, uint8_t len, uint8_t r, uint8_t g, uint8_t b)
+{
+    for(uint8_t x = 0 ; x < len ; x++)
+    {
+      ecrirePixelXY(startX + x , startY, r, g, b);
+    }
+}
+
+void Matrice::ligneV(uint8_t startX, uint8_t startY, uint8_t len, uint8_t r, uint8_t g, uint8_t b)
+{
+    for(uint8_t y = 0 ; y < len ; y++)
+    {
+      ecrirePixelXY(startX, startY+y, r, g, b);
+    }
+}
+
+void Matrice::afficherNombre(uint8_t posX, uint8_t posY, uint8_t segLen, uint8_t value, uint8_t r, uint8_t g, uint8_t b, uint8_t thick = 1)
+{
+  // Segment definition
+  //   -----1-----
+  //   |         |
+  //   2         0
+  //   |         |
+  //   -----3-----
+  //   |         |
+  //   6         4
+  //   |         |
+  //   -----5-----
+  const int digitSegmentDecoding[10][7] =  { 
+  { 1,1,1,0,1,1,1 },  // 0
+  { 1,0,0,0,1,0,0 },  // 1
+  { 1,1,0,1,0,1,1 },  // 2
+  { 1,1,0,1,1,1,0 },  // 3
+  { 1,0,1,1,1,0,0 },  // 4
+  { 0,1,1,1,1,1,0 },  // 5
+  { 0,1,1,1,1,1,1 },  // 6
+  { 1,1,0,0,1,0,0 },  // 7
+  { 1,1,1,1,1,1,1 },  // 8
+  { 1,1,1,1,1,0,0 } };// 9
+
+  if(value > 9) return;
+
+
+  unsigned int tCnt = thick;
+
+  while(tCnt > 0) 
+  {
+    tCnt--;
+  // Draw segments
+    if(digitSegmentDecoding[value][5])
+    {
+      ligneH(posX+thick, posY+tCnt,segLen,r,g,b);
+    }
+    if(digitSegmentDecoding[value][3])
+    {
+      ligneH(posX+thick, posY+segLen+thick+tCnt,segLen,r,g,b);
+    }
+    if(digitSegmentDecoding[value][1])
+    {
+      ligneH(posX+thick, posY+2*segLen+2*thick+tCnt,segLen,r,g,b);
+    }
+    if(digitSegmentDecoding[value][6])
+    {
+      ligneV(posX+tCnt, posY+thick,segLen,r,g,b);
+    }
+    if(digitSegmentDecoding[value][4])
+    {
+      ligneV(posX+segLen+thick+tCnt, posY+thick,segLen,r,g,b);
+    }
+    if(digitSegmentDecoding[value][2])
+    {
+      ligneV(posX+tCnt, posY+segLen+2*thick,segLen,r,g,b);
+    }
+    if(digitSegmentDecoding[value][0])
+    {
+      ligneV(posX+segLen+thick+tCnt, posY+segLen+2*thick,segLen,r,g,b);
+    }
   }
 }
